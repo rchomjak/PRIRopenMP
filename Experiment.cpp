@@ -115,7 +115,10 @@ Result * Experiment::calc(long experiments) {
 
     long l = 0;
 
+
+
     #pragma omp parallel firstprivate(l)
+
 	for (l = 0; l < experiments; l++) {
 
 		local_histogram[singleExperimentResult()]++;
@@ -136,17 +139,20 @@ Result * Experiment::calc(long experiments) {
 		    local_values += local_histogram[idx];
 	        }
 
-        #pragma omp atomic
 
+        #pragma omp atomic
             sum += local_sum;
         #pragma omp atomic
             values += local_values;
 
+        local_sum = 0;
+        local_values = 0;
 
     }
+
+
     #pragma omp parallel
     {
-
         #pragma omp critical
         {
 
@@ -155,10 +161,11 @@ Result * Experiment::calc(long experiments) {
                 histogram[idx] += local_histogram[idx];
             }
 
-
         }
+   }
 
-        #pragma omp master 
+ 
+        #pragma omp master
         {
             for (long idx = hmin; idx <= hmax; idx++) {
 
@@ -169,9 +176,7 @@ Result * Experiment::calc(long experiments) {
 
             }
         }
-    }
 
- 
 
 
 // indeks to wartosc, histogram -> liczba wystapien
