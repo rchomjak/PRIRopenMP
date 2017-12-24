@@ -78,7 +78,6 @@ long Experiment::singleExperimentResult() {
 
 	clearUsed();
 
-
 	for (int i = 0; i < drawsNumber;) {
         drand48_r(&drand_seed, &drand_return);
 		ball = 1 + (int) (((double) balls * drand_return) ); // rand losuje od 0 do RAND_MAX wlacznie
@@ -115,15 +114,6 @@ Result * Experiment::calc(long experiments) {
 
     long l = 0;
 
-
-
-    #pragma omp parallel firstprivate(l)
-
-	for (l = 0; l < experiments; l++) {
-
-		local_histogram[singleExperimentResult()]++;
-	}
-
 	long maxID = 0;
 	long minID = 0;
 	long maxN = 0;
@@ -132,12 +122,21 @@ Result * Experiment::calc(long experiments) {
 	long values = 0;
 
     long idx = 0;
-    #pragma omp parallel firstprivate(idx)
+
+
+    #pragma omp parallel firstprivate(l, idx)
     {
+	    for (l = 0; l < experiments; l++) {
+
+		    local_histogram[singleExperimentResult()]++;
+
+        }
+
 	    for (idx = hmin; idx <= hmax; idx++) {
 		    local_sum += idx * local_histogram[idx];
 		    local_values += local_histogram[idx];
-	        }
+	   }
+
 
 
         #pragma omp atomic
@@ -148,11 +147,8 @@ Result * Experiment::calc(long experiments) {
         local_sum = 0;
         local_values = 0;
 
-    }
+        #pragma omp barrier
 
-
-    #pragma omp parallel
-    {
         #pragma omp critical
         {
 
@@ -162,12 +158,12 @@ Result * Experiment::calc(long experiments) {
             }
 
         }
-   }
 
- 
+        #pragma omp barrier
+
         #pragma omp master
         {
-            for (long idx = hmin; idx <= hmax; idx++) {
+            for (idx = hmin; idx <= hmax; idx++) {
 
                 if(maxN < histogram[idx]) {
                     maxN = histogram[idx];
@@ -177,7 +173,7 @@ Result * Experiment::calc(long experiments) {
             }
         }
 
-
+    }
 
 // indeks to wartosc, histogram -> liczba wystapien
 	return new Result(maxID, maxN, sum / values, values);
@@ -185,7 +181,7 @@ Result * Experiment::calc(long experiments) {
 
 Experiment::~Experiment() {
 	delete[] histogram;
-    #pragma parallel
+    #pragma omp parallel
     {
         delete[] local_histogram;
 	    delete[] used;
