@@ -50,7 +50,7 @@ Experiment::Experiment(int balls, int drawsNumber) {
         srand48_r((long)used, &drand_seed);
         local_histogram = new long[hmax + 1];
 
-        memset(local_histogram, 0, sizeof(long)*hmax+1);
+        memset(local_histogram, 0, sizeof(long)*(hmax+1));
         memset(used, 0, sizeof(bool) * balls);
 
         local_sum = 0;
@@ -124,6 +124,7 @@ Result * Experiment::calc(long experiments) {
     long idx = 0;
 
 
+    memset(histogram, 0, sizeof(long) * (hmax + 1));
     #pragma omp parallel firstprivate(l, idx)
     {
 	    for (l = 0; l < experiments; l++) {
@@ -136,8 +137,6 @@ Result * Experiment::calc(long experiments) {
 		    local_sum += idx * local_histogram[idx];
 		    local_values += local_histogram[idx];
 	   }
-
-
 
         #pragma omp atomic
             sum += local_sum;
@@ -152,7 +151,7 @@ Result * Experiment::calc(long experiments) {
         #pragma omp critical
         {
 
-            for(long idx = hmin; idx <= hmax; idx++) {
+            for( idx = hmin; idx <= hmax; idx++) {
 
                 histogram[idx] += local_histogram[idx];
             }
@@ -163,6 +162,7 @@ Result * Experiment::calc(long experiments) {
 
         #pragma omp master
         {
+
             for (idx = hmin; idx <= hmax; idx++) {
 
                 if(maxN < histogram[idx]) {
